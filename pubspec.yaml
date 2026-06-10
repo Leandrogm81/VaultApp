@@ -1,0 +1,62 @@
+name: vaultapp
+description: "VaultApp — Password Manager"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.8
+
+  # Database
+  drift: ^2.33.0
+  sqlite3_flutter_libs: ^0.6.0+eol
+  path_provider: ^2.1.0
+  path: ^1.9.0
+
+  # Secure Storage
+  flutter_secure_storage: ^10.2.0
+
+  # State Management
+  flutter_riverpod: ^3.3.1
+
+  # Navigation
+  go_router: ^17.2.3
+
+  # Biometrics
+  local_auth: ^2.3.0
+
+  # Google Drive (backup)
+  googleapis: ^13.0.0
+  googleapis_auth: ^1.6.0
+
+  # Cryptography (validated in Sprint 4 spike)
+  cryptography: ^2.9.0
+  cryptography_flutter: ^2.3.4
+
+  # Utilities
+  intl: ^0.20.0
+  uuid: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Linting
+  flutter_lints: ^6.0.0
+
+  # Code generation (drift)
+  drift_dev: ^2.33.0
+  build_runner: ^2.4.0
+
+  # Testing
+  mocktail: ^1.0.0
+
+flutter:
+  uses-material-design: true
