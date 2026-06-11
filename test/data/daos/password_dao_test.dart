@@ -4,7 +4,6 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vaultapp/data/database/app_database.dart';
 import 'package:vaultapp/data/daos/password_dao.dart';
-
 void main() {
   late AppDatabase db;
   late PasswordDao dao;
@@ -102,36 +101,71 @@ void main() {
       expect(result, isNull);
     });
 
-    test('search deve encontrar por titulo', () async {
-      await dao.insertPassword(makePassword(id: 'pw-1', title: 'GitHub'));
-      await dao.insertPassword(makePassword(id: 'pw-2', title: 'GitLab'));
-      final results = await dao.search('Git');
-      expect(results.length, 2);
-    });
+    group('searchPasswords', () {
+      test('deve encontrar por titulo', () async {
+        await dao.insertPassword(makePassword(id: 'pw-1', title: 'GitHub'));
+        await dao.insertPassword(makePassword(id: 'pw-2', title: 'GitLab'));
+        final results = await dao.searchPasswords('Git');
+        expect(results.length, 2);
+      });
 
-    test('search deve encontrar por username', () async {
-      await dao.insertPassword(
-          makePassword(id: 'pw-1', title: 'Mail', username: 'user@gmail.com'));
-      await dao.insertPassword(
-          makePassword(id: 'pw-2', title: 'Other', username: 'admin@github.com'));
-      final results = await dao.search('admin');
-      expect(results.length, 1);
-      expect(results.first.username, 'admin@github.com');
-    });
+      test('deve encontrar por username', () async {
+        await dao.insertPassword(
+            makePassword(id: 'pw-1', title: 'Mail', username: 'user@gmail.com'));
+        await dao.insertPassword(
+            makePassword(id: 'pw-2', title: 'Other', username: 'admin@github.com'));
+        final results = await dao.searchPasswords('admin');
+        expect(results.length, 1);
+        expect(results.first.username, 'admin@github.com');
+      });
 
-    test('search deve retornar vazio quando nao ha correspondencia', () async {
-      await dao.insertPassword(makePassword(id: 'pw-1', title: 'GitHub'));
-      final results = await dao.search('xyz');
-      expect(results, isEmpty);
-    });
+      test('deve retornar vazio quando nao ha correspondencia', () async {
+        await dao.insertPassword(makePassword(id: 'pw-1', title: 'GitHub'));
+        final results = await dao.searchPasswords('xyz');
+        expect(results, isEmpty);
+      });
 
-    test('search deve encontrar por titulo OU username', () async {
-      await dao.insertPassword(
-          makePassword(id: 'pw-1', title: 'GitHub', username: 'user'));
-      await dao.insertPassword(
-          makePassword(id: 'pw-2', title: 'Other', username: 'github_user'));
-      final results = await dao.search('github');
-      expect(results.length, 2);
+      test('deve encontrar por titulo OU username', () async {
+        await dao.insertPassword(
+            makePassword(id: 'pw-1', title: 'GitHub', username: 'user'));
+        await dao.insertPassword(
+            makePassword(id: 'pw-2', title: 'Other', username: 'github_user'));
+        final results = await dao.searchPasswords('github');
+        expect(results.length, 2);
+      });
+
+      test('deve ser case-insensitive no titulo', () async {
+        await dao.insertPassword(makePassword(id: 'pw-1', title: 'GitHub'));
+        final resultsLower = await dao.searchPasswords('github');
+        final resultsUpper = await dao.searchPasswords('GITHUB');
+        final resultsMixed = await dao.searchPasswords('GiThUb');
+        expect(resultsLower.length, 1);
+        expect(resultsUpper.length, 1);
+        expect(resultsMixed.length, 1);
+      });
+
+      test('deve ser case-insensitive no username', () async {
+        await dao.insertPassword(
+            makePassword(id: 'pw-1', title: 'Mail', username: 'User@Email.COM'));
+        final results = await dao.searchPasswords('user@email.com');
+        expect(results.length, 1);
+      });
+
+      test('deve buscar por substring parcial', () async {
+        await dao.insertPassword(makePassword(id: 'pw-1', title: 'GitHub'));
+        await dao.insertPassword(makePassword(id: 'pw-2', title: 'GitLab'));
+        await dao.insertPassword(makePassword(id: 'pw-3', title: 'Bitbucket'));
+        final results = await dao.searchPasswords('Hub');
+        expect(results.length, 1);
+        expect(results.first.title, 'GitHub');
+      });
+
+      test('deve retornar lista vazia para query vazia', () async {
+        await dao.insertPassword(makePassword(id: 'pw-1', title: 'GitHub'));
+        final results = await dao.searchPasswords('');
+        // Empty string matches everything with LIKE '%%'
+        expect(results.length, 1);
+      });
     });
   });
 }

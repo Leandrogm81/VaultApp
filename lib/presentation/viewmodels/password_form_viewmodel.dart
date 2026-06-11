@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,6 +33,9 @@ class PasswordFormState {
   /// ID da categoria vinculada (null = sem categoria).
   final String? categoryId;
 
+  /// Tags da senha (lista de strings).
+  final List<String> tags;
+
   /// Se esta nos favoritos.
   final bool isFavorite;
 
@@ -59,6 +64,7 @@ class PasswordFormState {
     this.url = '',
     this.notes = '',
     this.categoryId,
+    this.tags = const [],
     this.isFavorite = false,
     this.isEditing = false,
     this.editingId,
@@ -80,6 +86,7 @@ class PasswordFormState {
     String? notes,
     String? categoryId,
     bool clearCategoryId = false,
+    List<String>? tags,
     bool? isFavorite,
     bool? isEditing,
     String? editingId,
@@ -96,6 +103,7 @@ class PasswordFormState {
       url: url ?? this.url,
       notes: notes ?? this.notes,
       categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
+      tags: tags ?? this.tags,
       isFavorite: isFavorite ?? this.isFavorite,
       isEditing: isEditing ?? this.isEditing,
       editingId: editingId ?? this.editingId,
@@ -130,6 +138,7 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
       url: password.url ?? '',
       notes: password.notes ?? '',
       categoryId: password.categoryId,
+      tags: password.tags,
       isFavorite: password.favorite,
       isEditing: true,
       editingId: password.id,
@@ -170,6 +179,11 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
   /// Atualiza o estado de favorito.
   void toggleFavorite() {
     state = state.copyWith(isFavorite: !state.isFavorite);
+  }
+
+  /// Atualiza a lista de tags.
+  void updateTags(List<String> tags) {
+    state = state.copyWith(tags: tags);
   }
 
   /// Valida campos obrigatorios. Retorna true se valido.
@@ -222,6 +236,7 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
             url: Value(state.url.trim().isEmpty ? null : state.url.trim()),
             notes: Value(state.notes.trim().isEmpty ? null : state.notes.trim()),
             categoryId: Value(state.categoryId),
+            tags: Value(jsonEncode(state.tags)),
             favorite: Value(state.isFavorite),
             createdAt: existing.createdAt,
             updatedAt: now,
@@ -239,6 +254,7 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
             url: Value(state.url.trim().isEmpty ? null : state.url.trim()),
             notes: Value(state.notes.trim().isEmpty ? null : state.notes.trim()),
             categoryId: Value(state.categoryId),
+            tags: Value(jsonEncode(state.tags)),
             favorite: Value(state.isFavorite),
             createdAt: now,
             updatedAt: now,

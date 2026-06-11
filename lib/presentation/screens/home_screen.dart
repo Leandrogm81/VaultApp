@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../viewmodels/home_viewmodel.dart';
+import '../viewmodels/search_viewmodel.dart';
 import '../widgets/password_list_item.dart';
+import '../widgets/search_bar.dart';
 import '../../core/services/clipboard_service.dart';
 
 /// Tela principal do VaultApp — lista de senhas.
 ///
-/// Exibe: AppBar, toggle favoritos, lista de senhas (ListView.builder), FAB "+",
-/// estados: loading, vazio, erro.
+/// Exibe: AppBar, barra de pesquisa, toggle favoritos, lista de senhas
+/// (ListView.builder), FAB "+", estados: loading, vazio, erro.
 /// Segue UI/UX Guide.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -35,6 +37,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final homeState = ref.watch(homeProvider);
+    final searchState = ref.watch(searchProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -45,23 +48,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 1,
-        actions: [
-          IconButton(
-            onPressed: () {
-              // Placeholder para pesquisa (Sprint 7)
-            },
-            icon: const Icon(Icons.search_rounded),
-            tooltip: 'Pesquisar',
-          ),
-        ],
       ),
       body: Column(
         children: [
-          // Toggle de favoritos
-          _buildFavoritesToggle(homeState, colorScheme, theme),
+          // Barra de pesquisa
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: VaultSearchBar(
+              onChanged: (query) {
+                ref.read(searchProvider.notifier).search(query);
+              },
+              onClear: () {
+                ref.read(searchProvider.notifier).clearSearch();
+              },
+            ),
+          ),
+          // Toggle de favoritos (apenas quando busca nao esta ativa)
+          if (!searchState.isActive)
+            _buildFavoritesToggle(homeState, colorScheme, theme),
           // Conteudo principal
           Expanded(
-            child: _buildBody(homeState, colorScheme, theme),
+            child: searchState.isActive
+                ? _buildSearchBody(searchState, colorScheme, theme)
+                : _buildBody(homeState, colorScheme, theme),
           ),
         ],
       ),
@@ -159,6 +168,108 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Corpo para resultados de busca.
+  Widget _buildSearchBody(
+    SearchState state,
+    ColorScheme colorScheme,
+    ThemeData theme,
+  ) {
+    // Estado: loading
+    if (state.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    // Estado: erro
+    if (state.errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                state.errorMessage!,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: colorScheme.onSurface,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Estado: sem resultados
+    if (state.results.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search_off_rounded,
+                size: 64,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Nenhum resultado',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Nenhum resultado para "${state.query}"',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Estado: resultados encontrados
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: state.results.length,
+      itemBuilder: (context, index) {
+        final password = state.results[index];
+        return PasswordListItem(
+          password: password,
+          onTap: () async {
+            final result = await context.push('/password/${password.id}');
+            if (result == true) {
+              ref.read(homeProvider.notifier).refresh();
+              // Reexecuta a busca se estiver ativa
+              final currentQuery = ref.read(searchProvider).query;
+              if (currentQuery.isNotEmpty) {
+                ref.read(searchProvider.notifier).search(currentQuery);
+              }
+            }
+          },
+          onCopy: () async {
+            await _clipboardService.copyAndNotify(context, password.password);
+          },
+        );
+      },
     );
   }
 

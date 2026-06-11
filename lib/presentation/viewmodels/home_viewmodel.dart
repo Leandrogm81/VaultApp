@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database/app_database.dart';
@@ -147,10 +149,22 @@ class HomeNotifier extends Notifier<HomeState> {
       password: row.password,
       url: row.url,
       notes: row.notes,
-      tags: const [], // TODO: parse JSON tags quando implementado
+      tags: _parseTags(row.tags),
       favorite: row.favorite,
       createdAt: DateTime.tryParse(row.createdAt) ?? DateTime.now(),
       updatedAt: DateTime.tryParse(row.updatedAt) ?? DateTime.now(),
     );
+  }
+
+  /// Faz parse de tags de JSON array string para List<String>.
+  List<String> _parseTags(String tagsJson) {
+    if (tagsJson.isEmpty || tagsJson == '[]') return [];
+    try {
+      final decoded = jsonDecode(tagsJson);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList();
+      }
+    } catch (_) {}
+    return [];
   }
 }

@@ -42,11 +42,16 @@ class PasswordDao extends DatabaseAccessor<AppDatabase>
     return query.go().then((count) => count > 0);
   }
 
-  /// Busca por titulo OU username (case-sensitive por enquanto).
-  /// Usa LIKE '%query%' para busca por substring.
-  Future<List<PasswordsTableData>> search(String query) async {
+  /// Busca por titulo OU username (case-insensitive, por substring).
+  /// Usa LOWER() + LIKE para busca case-insensitive.
+  Future<List<PasswordsTableData>> searchPasswords(String query) async {
+    final lowerQuery = query.toLowerCase();
     final searchQuery = select(passwordsTable)
-      ..where((t) => t.title.like('%$query%') | t.username.like('%$query%'));
+      ..where(
+        (t) =>
+            t.title.lower().like('%$lowerQuery%') |
+            t.username.lower().like('%$lowerQuery%'),
+      );
     return searchQuery.get();
   }
 

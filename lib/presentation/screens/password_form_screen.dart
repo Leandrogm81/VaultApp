@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../viewmodels/password_form_viewmodel.dart';
+import '../viewmodels/search_viewmodel.dart';
 import '../viewmodels/categories_viewmodel.dart';
+import '../widgets/tag_input.dart';
 import '../../domain/entities/password.dart';
 import '../../domain/services/category_service.dart';
 
@@ -165,6 +167,10 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen> {
             ),
             const SizedBox(height: 16),
 
+            // Tags
+            _buildTagInput(formState, colorScheme),
+            const SizedBox(height: 16),
+
             // Toggle Favorito
             SwitchListTile(
               title: const Text('Favorito'),
@@ -275,6 +281,35 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen> {
       onChanged: (value) {
         ref.read(passwordFormProvider.notifier).updateCategory(value);
       },
+    );
+  }
+
+  Widget _buildTagInput(PasswordFormState formState, ColorScheme colorScheme) {
+    // Busca tags existentes para autocomplete
+    final existingTags = ref.watch(existingTagsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tags',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: colorScheme.onSurface,
+              ),
+        ),
+        const SizedBox(height: 8),
+        existingTags.when(
+          data: (tags) => TagInput(
+            tags: formState.tags,
+            suggestions: tags,
+            onTagsChanged: (newTags) {
+              ref.read(passwordFormProvider.notifier).updateTags(newTags);
+            },
+          ),
+          loading: () => const TagInput(),
+          error: (_, __) => const TagInput(),
+        ),
+      ],
     );
   }
 
