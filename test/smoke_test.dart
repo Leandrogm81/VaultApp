@@ -1,10 +1,10 @@
-/// Smoke test — valida que o projeto compila e componentes básicos existem.
+/// Smoke test — valida que o projeto compila e componentes basicos existem.
 ///
-/// Este teste NÃO valida funcionalidade de negócio (ainda não existe).
+/// Este teste NAO valida funcionalidade de negocio (ainda nao existe).
 /// Valida que:
-/// - O projeto compila sem erros de importação.
+/// - O projeto compila sem erros de importacao.
 /// - O widget principal pode ser instanciado.
-/// - A estrutura básica do app está correta.
+/// - A estrutura basica do app esta correta.
 library;
 
 import 'package:flutter/material.dart';
@@ -13,20 +13,20 @@ import 'package:vaultapp/main.dart';
 
 void main() {
   group('Smoke test — VaultApp', () {
-    test('MyApp pode ser instanciado', () {
+    test('VaultApp pode ser instanciado', () {
       // Verifica que o widget principal existe e pode ser criado.
-      const app = MyApp();
+      const app = VaultApp();
       expect(app, isNotNull);
-      expect(app, isA<MyApp>());
+      expect(app, isA<VaultApp>());
     });
 
-    test('MyApp tem key correta', () {
-      const app = MyApp(key: Key('test_app'));
+    test('VaultApp tem key correta', () {
+      const app = VaultApp(key: Key('test_app'));
       expect(app.key, isA<Key>());
     });
 
-    test('Projeto compila — importações resolvidas', () {
-      // Se este teste executa, significa que todas as importações
+    test('Projeto compila — importacoes resolvidas', () {
+      // Se este teste executa, significa que todas as importacoes
       // em main.dart foram resolvidas com sucesso.
       expect(true, isTrue);
     });
