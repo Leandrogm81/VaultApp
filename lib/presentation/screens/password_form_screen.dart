@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../viewmodels/password_form_viewmodel.dart';
+import '../viewmodels/categories_viewmodel.dart';
 import '../../domain/entities/password.dart';
+import '../../domain/services/category_service.dart';
 
 /// Tela de formulario para adicionar ou editar senha.
 ///
@@ -15,11 +17,7 @@ class PasswordFormScreen extends ConsumerStatefulWidget {
   /// Senha existente para preencher o formulario (null para criacao).
   final Password? existingPassword;
 
-  const PasswordFormScreen({
-    super.key,
-    this.passwordId,
-    this.existingPassword,
-  });
+  const PasswordFormScreen({super.key, this.passwordId, this.existingPassword});
 
   @override
   ConsumerState<PasswordFormScreen> createState() => _PasswordFormScreenState();
@@ -54,6 +52,9 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen> {
       } else {
         notifier.initializeForCreate();
       }
+
+      // Carrega categorias para o dropdown
+      ref.read(categoriesProvider.notifier).loadCategories();
     });
   }
 
@@ -72,6 +73,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final formState = ref.watch(passwordFormProvider);
+    final categoriesState = ref.watch(categoriesProvider);
 
     // Observa submitSuccess para navegar
     ref.listen<PasswordFormState>(passwordFormProvider, (prev, next) {
@@ -155,6 +157,14 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen> {
             ),
             const SizedBox(height: 16),
 
+            // Dropdown de Categoria (opcional)
+            _buildCategoryDropdown(
+              categoriesState.categories,
+              formState.categoryId,
+              colorScheme,
+            ),
+            const SizedBox(height: 16),
+
             // Toggle Favorito
             SwitchListTile(
               title: const Text('Favorito'),
@@ -225,7 +235,49 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen> {
     );
   }
 
-  /// Constroi um campo de texto padrao.
+  Widget _buildCategoryDropdown(
+    List<CategoryWithCount> categories,
+    String? selectedCategoryId,
+    ColorScheme colorScheme,
+  ) {
+    return DropdownButtonFormField<String>(
+      initialValue: selectedCategoryId,
+      decoration: InputDecoration(
+        labelText: 'Categoria',
+        hintText: 'Nenhuma',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(
+            color: colorScheme.outline,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(
+            color: colorScheme.primary,
+            width: 2,
+          ),
+        ),
+      ),
+      items: [
+        const DropdownMenuItem<String>(
+          value: null,
+          child: Text('Sem categoria'),
+        ),
+        ...categories.map((item) => DropdownMenuItem<String>(
+              value: item.category.id,
+              child: Text(item.category.name),
+            )),
+      ],
+      onChanged: (value) {
+        ref.read(passwordFormProvider.notifier).updateCategory(value);
+      },
+    );
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,

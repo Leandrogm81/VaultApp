@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database/app_database.dart';
 import '../../data/daos/password_dao.dart';
 import '../../domain/entities/password.dart';
-
 /// Provider do AppDatabase (compartilhado entre telas).
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return AppDatabase();
@@ -34,11 +33,15 @@ class HomeState {
   /// Se a lista esta vazia.
   final bool isEmpty;
 
+  /// Se o filtro de favoritos esta ativo.
+  final bool showFavoritesOnly;
+
   const HomeState({
     this.passwords = const [],
     this.isLoading = false,
     this.errorMessage,
     this.isEmpty = false,
+    this.showFavoritesOnly = false,
   });
 
   /// Estado inicial padrao.
@@ -50,6 +53,7 @@ class HomeState {
     bool? isLoading,
     String? errorMessage,
     bool? isEmpty,
+    bool? showFavoritesOnly,
     bool clearError = false,
   }) {
     return HomeState(
@@ -57,6 +61,7 @@ class HomeState {
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isEmpty: isEmpty ?? this.isEmpty,
+      showFavoritesOnly: showFavoritesOnly ?? this.showFavoritesOnly,
     );
   }
 }
@@ -64,8 +69,11 @@ class HomeState {
 /// ViewModel para a tela Home (Notifier do Riverpod 3.x).
 ///
 /// Gerencia estado da lista de senhas: loading, loaded, empty, error.
-/// Conecta UI ao DAO Password.
+/// Conecta UI ao DAO Password. Suporta filtro de favoritos.
 class HomeNotifier extends Notifier<HomeState> {
+  /// Lista completa de senhas (antes do filtro).
+  List<Password> _allPasswords = [];
+
   @override
   HomeState build() {
     return HomeState.initial();
@@ -79,19 +87,36 @@ class HomeNotifier extends Notifier<HomeState> {
       final dao = ref.read(passwordDaoProvider);
       final rows = await dao.getAll();
 
-      final passwords = rows.map(_rowToPassword).toList();
-
-      state = state.copyWith(
-        isLoading: false,
-        passwords: passwords,
-        isEmpty: passwords.isEmpty,
-      );
+      _allPasswords = rows.map(_rowToPassword).toList();
+      _applyFilter();
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Erro ao carregar senhas',
       );
     }
+  }
+
+  /// Alterna o filtro de favoritos.
+  void toggleFavoritesFilter() {
+    state = state.copyWith(showFavoritesOnly: !state.showFavoritesOnly);
+    _applyFilter();
+  }
+
+  /// Aplica o filtro atual (favoritos ou todos).
+  void _applyFilter() {
+    List<Password> filtered;
+    if (state.showFavoritesOnly) {
+      filtered = _allPasswords.where((p) => p.favorite).toList();
+    } else {
+      filtered = List.from(_allPasswords);
+    }
+
+    state = state.copyWith(
+      isLoading: false,
+      passwords: filtered,
+      isEmpty: filtered.isEmpty,
+    );
   }
 
   /// Exclui uma senha pelo ID e recarrega a lista.

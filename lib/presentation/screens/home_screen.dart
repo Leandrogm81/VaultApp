@@ -8,7 +8,7 @@ import '../../core/services/clipboard_service.dart';
 
 /// Tela principal do VaultApp — lista de senhas.
 ///
-/// Exibe: AppBar, lista de senhas (ListView.builder), FAB "+",
+/// Exibe: AppBar, toggle favoritos, lista de senhas (ListView.builder), FAB "+",
 /// estados: loading, vazio, erro.
 /// Segue UI/UX Guide.
 class HomeScreen extends ConsumerStatefulWidget {
@@ -55,13 +55,109 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
-      body: _buildBody(homeState, colorScheme, theme),
+      body: Column(
+        children: [
+          // Toggle de favoritos
+          _buildFavoritesToggle(homeState, colorScheme, theme),
+          // Conteudo principal
+          Expanded(
+            child: _buildBody(homeState, colorScheme, theme),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           context.push('/password/new');
         },
         tooltip: 'Adicionar senha',
         child: const Icon(Icons.add_rounded),
+      ),
+    );
+  }
+
+  Widget _buildFavoritesToggle(
+    HomeState state,
+    ColorScheme colorScheme,
+    ThemeData theme,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          // Botao "Todas"
+          _buildFilterChip(
+            label: 'Todas',
+            isSelected: !state.showFavoritesOnly,
+            onTap: () {
+              if (state.showFavoritesOnly) {
+                ref.read(homeProvider.notifier).toggleFavoritesFilter();
+              }
+            },
+            colorScheme: colorScheme,
+            theme: theme,
+          ),
+          const SizedBox(width: 8),
+          // Botao "Favoritas"
+          _buildFilterChip(
+            label: 'Favoritas',
+            isSelected: state.showFavoritesOnly,
+            onTap: () {
+              if (!state.showFavoritesOnly) {
+                ref.read(homeProvider.notifier).toggleFavoritesFilter();
+              }
+            },
+            colorScheme: colorScheme,
+            theme: theme,
+            icon: Icons.star_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required ColorScheme colorScheme,
+    required ThemeData theme,
+    IconData? icon,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? colorScheme.primary
+              : colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: isSelected
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -110,6 +206,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Estado: vazio
     if (state.isEmpty) {
+      final isFiltered = state.showFavoritesOnly;
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -117,13 +214,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.lock_open_rounded,
+                isFiltered
+                    ? Icons.star_outline_rounded
+                    : Icons.lock_open_rounded,
                 size: 64,
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 16),
               Text(
-                'Nenhuma senha cadastrada',
+                isFiltered
+                    ? 'Nenhuma senha favorita'
+                    : 'Nenhuma senha cadastrada',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
@@ -131,7 +232,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Adicione sua primeira senha tocando no botao +',
+                isFiltered
+                    ? 'Marque senhas como favoritas para acessar rapidamente'
+                    : 'Adicione sua primeira senha tocando no botao +',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),

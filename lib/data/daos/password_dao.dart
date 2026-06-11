@@ -49,4 +49,14 @@ class PasswordDao extends DatabaseAccessor<AppDatabase>
       ..where((t) => t.title.like('%$query%') | t.username.like('%$query%'));
     return searchQuery.get();
   }
+
+  /// Limpa o categoryId de todas as senhas vinculadas a uma categoria.
+  /// Usado quando a categoria e excluida — senhas ficam sem categoria.
+  Future<void> clearCategoryId(String categoryId) async {
+    final query = update(passwordsTable)
+      ..where((t) => t.categoryId.equals(categoryId));
+    await query.write(const PasswordsTableCompanion(
+      categoryId: Value(null),
+    ));
+  }
 }

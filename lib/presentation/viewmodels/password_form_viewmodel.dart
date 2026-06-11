@@ -28,6 +28,9 @@ class PasswordFormState {
   /// Notas.
   final String notes;
 
+  /// ID da categoria vinculada (null = sem categoria).
+  final String? categoryId;
+
   /// Se esta nos favoritos.
   final bool isFavorite;
 
@@ -55,6 +58,7 @@ class PasswordFormState {
     this.password = '',
     this.url = '',
     this.notes = '',
+    this.categoryId,
     this.isFavorite = false,
     this.isEditing = false,
     this.editingId,
@@ -74,6 +78,8 @@ class PasswordFormState {
     String? password,
     String? url,
     String? notes,
+    String? categoryId,
+    bool clearCategoryId = false,
     bool? isFavorite,
     bool? isEditing,
     String? editingId,
@@ -89,6 +95,7 @@ class PasswordFormState {
       password: password ?? this.password,
       url: url ?? this.url,
       notes: notes ?? this.notes,
+      categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
       isFavorite: isFavorite ?? this.isFavorite,
       isEditing: isEditing ?? this.isEditing,
       editingId: editingId ?? this.editingId,
@@ -102,7 +109,7 @@ class PasswordFormState {
 
 /// ViewModel para o formulario de senha (Notifier do Riverpod 3.x).
 ///
-/// Gerencia estado: campos, validacao, submissao, erro.
+/// Gerencia estado: campos, validacao, submissao, erro, categoria vinculada.
 class PasswordFormNotifier extends Notifier<PasswordFormState> {
   @override
   PasswordFormState build() {
@@ -122,6 +129,7 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
       password: password.password,
       url: password.url ?? '',
       notes: password.notes ?? '',
+      categoryId: password.categoryId,
       isFavorite: password.favorite,
       isEditing: true,
       editingId: password.id,
@@ -147,6 +155,15 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
       final newErrors = Map<String, String>.from(state.errors);
       newErrors.remove(field);
       state = state.copyWith(errors: newErrors);
+    }
+  }
+
+  /// Atualiza a categoria vinculada.
+  void updateCategory(String? id) {
+    if (id == null) {
+      state = state.copyWith(clearCategoryId: true);
+    } else {
+      state = state.copyWith(categoryId: id);
     }
   }
 
@@ -204,6 +221,7 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
             password: state.password,
             url: Value(state.url.trim().isEmpty ? null : state.url.trim()),
             notes: Value(state.notes.trim().isEmpty ? null : state.notes.trim()),
+            categoryId: Value(state.categoryId),
             favorite: Value(state.isFavorite),
             createdAt: existing.createdAt,
             updatedAt: now,
@@ -220,6 +238,7 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
             password: state.password,
             url: Value(state.url.trim().isEmpty ? null : state.url.trim()),
             notes: Value(state.notes.trim().isEmpty ? null : state.notes.trim()),
+            categoryId: Value(state.categoryId),
             favorite: Value(state.isFavorite),
             createdAt: now,
             updatedAt: now,
