@@ -9,7 +9,7 @@ import '../widgets/biometric_button.dart';
 /// Tela de bloqueio do VaultApp.
 ///
 /// Primeira tela que o usuario ve. Segue UI_UX_GUIDE.md.
-/// Estados: setup (primeira vez), auth, loading, erro.
+/// Estados: setup (primeira vez), auth, loading, erro, bloqueio.
 class LockScreen extends ConsumerStatefulWidget {
   const LockScreen({super.key});
 
@@ -36,10 +36,29 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     super.dispose();
   }
 
+  /// Formata o tempo restante de bloqueio como MM:SS.
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(vm.lockProvider);
     final isSetup = state.mode == vm.LockMode.setup;
+    final isLockedOut = state.isLockedOut;
+
+    // Calcular tempo restante
+    String? remainingTime;
+    if (isLockedOut && state.lockUntil != null) {
+      final remaining = state.lockUntil!.difference(DateTime.now());
+      if (remaining.isNegative) {
+        remainingTime = '00:00';
+      } else {
+        remainingTime = _formatDuration(remaining);
+      }
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC), // Fundo do guia
@@ -68,23 +87,88 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    isSetup
-                        ? 'Defina sua senha mestra'
-                        : 'Digite sua senha mestra',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF475569), // Texto secundario do guia
+
+                  // Texto contextual
+                  if (isLockedOut)
+                    Text(
+                      'Conta bloqueada',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFFB91C1C), // Erro do guia
+                      ),
+                    )
+                  else
+                    Text(
+                      isSetup
+                          ? 'Defina sua senha mestra'
+                          : 'Digite sua senha mestra',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF475569), // Texto secundario do guia
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 32),
 
-                  // Botao de biometria (apenas no modo auth e se disponivel)
-                  if (!isSetup) ...[
+                  // Timer de bloqueio (quando bloqueado)
+                  if (isLockedOut && remainingTime != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2), // Fundo erro leve
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFB91C1C).withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.timer_off_outlined,
+                            size: 32,
+                            color: Color(0xFFB91C1C),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Tente novamente em',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: const Color(0xFF475569),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            remainingTime,
+                            style: const TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFB91C1C),
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${state.failedAttempts} tentativa(s) falha(s)',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Botao de biometria (apenas no modo auth, disponivel e NAO bloqueado)
+                  if (!isSetup && !isLockedOut) ...[
                     Consumer(
                       builder: (context, ref, child) {
                         final biometricState = ref.watch(biometricProvider);
-                        if (biometricState.isAvailable && biometricState.isEnabled) {
+                        if (biometricState.isAvailable &&
+                            biometricState.isEnabled) {
                           return Column(
                             children: [
                               BiometricButton(
@@ -117,18 +201,21 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     ),
                   ],
 
-                  // Campo de senha
+                  // Campo de senha (desabilitado quando bloqueado)
                   TextField(
                     controller: _passwordController,
                     obscureText: _obscureText,
+                    enabled: !isLockedOut,
                     onChanged: (value) {
                       ref.read(vm.lockProvider.notifier).updatePassword(value);
                     },
                     decoration: InputDecoration(
                       labelText: 'Senha',
-                      hintText: 'Digite sua senha',
+                      hintText: isLockedOut
+                          ? 'Conta bloqueada'
+                          : 'Digite sua senha',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8), // Raio do guia
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -136,11 +223,13 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureText = !_obscureText;
-                          });
-                        },
+                        onPressed: isLockedOut
+                            ? null
+                            : () {
+                                setState(() {
+                                  _obscureText = !_obscureText;
+                                });
+                              },
                       ),
                     ),
                   ),
@@ -158,12 +247,14 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                   ],
                   const SizedBox(height: 16),
 
-                  // Botao principal
+                  // Botao principal (desabilitado quando bloqueado)
                   SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: state.isLoading || state.password.isEmpty
+                      onPressed: (state.isLoading ||
+                              state.password.isEmpty ||
+                              isLockedOut)
                           ? null
                           : () async {
                               await ref
@@ -172,9 +263,10 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                               _passwordController.clear();
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1D4ED8), // Primaria
+                        backgroundColor: const Color(0xFF1D4ED8),
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(0xFF1D4ED8).withValues(alpha: 0.5),
+                        disabledBackgroundColor:
+                            const Color(0xFF1D4ED8).withValues(alpha: 0.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -202,13 +294,15 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                   if (!isSetup) ...[
                     const SizedBox(height: 16),
                     TextButton(
-                      onPressed: () {
-                        // Placeholder — fluxo completo na Sprint 14
-                      },
+                      onPressed: isLockedOut
+                          ? null
+                          : () {
+                              // Placeholder — fluxo completo na Sprint 14
+                            },
                       child: const Text(
                         'Esqueci a senha',
                         style: TextStyle(
-                          color: Color(0xFF64748B), // Texto discreto do guia
+                          color: Color(0xFF64748B),
                           fontSize: 14,
                         ),
                       ),
