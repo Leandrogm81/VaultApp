@@ -6,6 +6,7 @@ import '../viewmodels/password_form_viewmodel.dart';
 import '../viewmodels/search_viewmodel.dart';
 import '../viewmodels/categories_viewmodel.dart';
 import '../widgets/tag_input.dart';
+import '../widgets/password_generator_dialog.dart';
 import '../../domain/entities/password.dart';
 import '../../domain/services/category_service.dart';
 
@@ -133,7 +134,31 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen> {
                 ref.read(passwordFormProvider.notifier).updateField('password', value);
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
+            // Botao Gerar Senha
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () {
+                  showDialog<String>(
+                    context: context,
+                    builder: (_) => PasswordGeneratorDialog(
+                      onPasswordGenerated: (password) {
+                        _passwordController.text = password;
+                        ref.read(passwordFormProvider.notifier).updateField('password', password);
+                      },
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.password_rounded, size: 18),
+                label: const Text('Gerar senha'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
 
             // Campo URL
             _buildTextField(
