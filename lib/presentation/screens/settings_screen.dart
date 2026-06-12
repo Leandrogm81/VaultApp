@@ -8,6 +8,7 @@ import '../widgets/auto_lock_selector.dart';
 import '../widgets/biometric_toggle.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/theme_selector.dart';
+import 'change_password_screen.dart';
 
 /// Tela de Configuracoes do VaultApp.
 ///
@@ -103,14 +104,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             fontWeight: FontWeight.w400,
                           ),
                         ),
-                        subtitle: Text(
-                          'Sprint 11',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
                         trailing: Icon(
                           Icons.chevron_right_rounded,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -118,6 +111,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         contentPadding:
                             const EdgeInsets.symmetric(horizontal: 16),
                         dense: true,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ChangePasswordScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
