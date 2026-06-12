@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../presentation/screens/home_screen.dart';
 import '../../presentation/screens/password_detail_screen.dart';
 import '../../presentation/screens/password_form_screen.dart';
+import '../../presentation/screens/settings_screen.dart';
 import '../../presentation/widgets/bottom_nav.dart';
 
 /// Router principal do VaultApp usando go_router.
@@ -45,11 +46,11 @@ class AppRouter {
               child: _PlaceholderScreen(title: 'Favoritos'),
             ),
           ),
-          // Placeholder para Config (Sprint 9)
+          // Config (Sprint 9)
           GoRoute(
             path: '/settings',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: _PlaceholderScreen(title: 'Configuracoes'),
+              child: SettingsScreen(),
             ),
           ),
         ],
